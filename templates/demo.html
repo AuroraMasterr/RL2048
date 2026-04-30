@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>PPO 智能体演示 - 2048</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .demo-container {
+            max-width: 600px;
+            margin: 20px auto;
+            text-align: center;
+        }
+        
+        .control-panel {
+            background-color: #bbada0;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .control-button {
+            background-color: #8f7a66;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .control-button:hover {
+            background-color: #9f8b77;
+        }
+        
+        .control-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .speed-control {
+            margin: 10px 0;
+        }
+        
+        .speed-label {
+            color: white;
+            margin-right: 10px;
+        }
+        
+        .speed-slider {
+            width: 150px;
+        }
+        
+        .status-info {
+            background-color: #faf8ef;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .status-item {
+            display: inline-block;
+            margin: 5px 10px;
+        }
+        
+        .status-value {
+            font-weight: bold;
+            font-size: 20px;
+        }
+        
+        .action-label {
+            font-size: 14px;
+            color: #776e65;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <h1>🎮 PPO 智能体演示</h1>
+        <p>观看强化学习智能体玩 2048 游戏</p>
+        
+        <div class="control-panel">
+            <button class="control-button" id="startBtn">▶️ 开始</button>
+            <button class="control-button" id="pauseBtn" disabled>⏸️ 暂停</button>
+            <button class="control-button" id="resetBtn">🔄 重置</button>
+            
+            <div class="speed-control">
+                <span class="speed-label">速度:</span>
+                <input type="range" id="speedSlider" class="speed-slider" min="50" max="1000" value="500" step="50">
+                <span id="speedValue">500ms</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <a href="/" class="control-button">🏠 返回主页</a>
+        </div>
+        
+        <div class="controls">
+            <button class="control-button" id="recordBtn">📹 开始录制</button>
+        </div>
+        
+        <div class="game-container">
+            <div class="game-board" id="game-board"></div>
+        </div>
+        
+        <div class="status-info">
+            <div class="status-item">
+                分数: <span class="status-value" id="score">0</span>
+            </div>
+            <div class="status-item">
+                最大块: <span class="status-value" id="maxTile">0</span>
+            </div>
+            <div class="status-item">
+                步数: <span class="status-value" id="steps">0</span>
+            </div>
+            <div class="status-item">
+                游戏数: <span class="status-value" id="episodes">0</span>
+            </div>
+        </div>
+        
+        <div class="action-label" id="actionLabel"></div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='demo.js') }}"></script>
+</body>
+</html>
