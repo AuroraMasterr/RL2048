@@ -41,7 +41,7 @@ def evaluate_agent(agent, env, num_episodes=10):
             valid_actions = env.get_valid_actions()
             
             if hasattr(agent, 'select_action') and callable(getattr(agent, 'select_action')):
-                result = agent.select_action(state, epsilon=0.0)
+                result = agent.select_action(state, valid_actions=valid_actions, epsilon=0.0)
                 if isinstance(result, tuple) and len(result) >= 3:
                     action, _, _ = result
                 elif isinstance(result, tuple) and len(result) == 2:
@@ -108,11 +108,7 @@ def train_dqn_agent(config, args):
             # 获取有效动作
             valid_actions = env.get_valid_actions()
             
-            action = agent.select_action(state)
-            
-            # 如果动作无效，从有效动作中随机选
-            if action not in valid_actions and valid_actions:
-                action = np.random.choice(valid_actions)
+            action = agent.select_action(state, valid_actions=valid_actions)
             
             next_state, reward, done, info = env.step(action)
             
@@ -176,11 +172,7 @@ def train_ppo_agent(config, args):
             # 获取有效动作
             valid_actions = env.get_valid_actions()
             
-            action, log_prob, value = agent.select_action(state)
-            
-            # 如果动作无效，从有效动作中随机选
-            if action not in valid_actions and valid_actions:
-                action = np.random.choice(valid_actions)
+            action, log_prob, value = agent.select_action(state, valid_actions=valid_actions)
             
             next_state, reward, done, info = env.step(action)
             

@@ -117,8 +117,10 @@ def draw_board(board, score, max_tile, step, action=None):
     return img
 
 
-def record_agent_video(model_path=None, num_episodes=3, max_steps=1000, fps=2, output_dir="videos"):
+def record_agent_video(model_path=None, num_episodes=1, max_steps=1000, fps=2, output_dir="videos"):
     """录制智能体玩游戏的视频"""
+    # 强制单局录制，避免生成多局拼接视频。
+    num_episodes = 1
     # 创建输出目录
     os.makedirs(output_dir, exist_ok=True)
     
@@ -130,17 +132,19 @@ def record_agent_video(model_path=None, num_episodes=3, max_steps=1000, fps=2, o
     ppo_config = config.ppo.copy()
     if 'update_interval' in ppo_config:
         del ppo_config['update_interval']
+    ppo_config['hidden_dim'] = 256
     
     agent = PPOAgent(
         input_shape=(config.board_size, config.board_size),
         num_actions=config.num_actions,
+        use_one_hot=True,
         device='cpu',
         **ppo_config
     )
     
     # 尝试加载模型
     if model_path is None:
-        model_path = "models/checkpoints/ppo_best.pth"
+        model_path = "models/checkpoints/ppo_best_improved_v2.pth"
     
     if os.path.exists(model_path):
         agent.load(model_path)
@@ -268,7 +272,6 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="录制 PPO 智能体玩 2048 的视频")
     parser.add_argument("--model", type=str, default=None, help="模型路径")
-    parser.add_argument("--episodes", type=int, default=1, help="游戏次数")
     parser.add_argument("--fps", type=int, default=3, help="视频帧率")
     parser.add_argument("--output", type=str, default="videos", help="输出目录")
     
@@ -276,7 +279,6 @@ if __name__ == "__main__":
     
     record_agent_video(
         model_path=args.model,
-        num_episodes=args.episodes,
         fps=args.fps,
         output_dir=args.output
     )

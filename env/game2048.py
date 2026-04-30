@@ -80,54 +80,60 @@ class Game2048:
         return moved, score
     
     def calculate_heuristic_reward(self, board, moved, score_gained):
-        """计算启发式奖励 - 改进版，更稳定"""
+        """计算启发式奖励 - 全面优化版本"""
         reward = 0
         
         if not moved:
-            # 无效动作惩罚 - 温和一点
-            reward -= 2
+            # 无效动作惩罚
+            reward -= 5
             return reward
         
-        # 1. 得分奖励 - 标准化
+        # ========== 1. 合并得分奖励 ==========
         if score_gained > 0:
+            # log2缩放，避免过大的分数掩盖其他奖励
             reward += np.log2(score_gained + 1) * 0.5
         
-        # 2. 空位奖励 - 保持棋盘整洁
+        # ========== 2. 空位数奖励（重要） ==========
         empty_cells = np.sum(board == 0)
-        reward += empty_cells * 0.05
+        # 每多一个空位奖励更多（越后期越重要）
+        reward += empty_cells * 1.0
         
-        # 3. 大数字在角落奖励 - 稍微降低权重
+        # ========== 3. 大数字在角落奖励 ==========
         max_tile = np.max(board)
-        corners = [(0, 0), (0, 3), (3, 0), (3, 3)]
-        for i, j in corners:
+        # 检查四个角落
+        corner_positions = [(0, 0), (0, 3), (3, 0), (3, 3)]
+        for i, j in corner_positions:
             if board[i, j] == max_tile:
-                reward += np.log2(max_tile + 1) * 0.3
+                # 大数字在角落给重奖
+                reward += np.log2(max_tile + 1) * 1.5
                 break
         
-        # 4. 单调性奖励 - 降低权重，避免震荡
+        # ========== 4. 单调性奖励（从角落向外递增） ==========
         monotonicity = 0
         
-        # 检查行单调性（从左上开始向右下递增）
+        # 检查行（从左到右递增）
         for i in range(4):
             row = board[i, :]
             non_zero = row[row > 0]
             if len(non_zero) > 1:
-                # 计算单调程度
                 diffs = np.diff(non_zero)
                 # 奖励递增的序列
-                monotonicity += np.sum(diffs >= 0) * 0.1
+                monotonicity += np.sum(diffs >= 0) * 0.3
+                # 惩罚递减的序列
+                monotonicity -= np.sum(diffs < 0) * 0.1
         
-        # 检查列单调性
+        # 检查列（从上到下递增）
         for j in range(4):
             col = board[:, j]
             non_zero = col[col > 0]
             if len(non_zero) > 1:
                 diffs = np.diff(non_zero)
-                monotonicity += np.sum(diffs >= 0) * 0.1
+                monotonicity += np.sum(diffs >= 0) * 0.3
+                monotonicity -= np.sum(diffs < 0) * 0.1
         
         reward += monotonicity
         
-        # 5. 平滑性奖励 - 相邻数字大小相近
+        # ========== 5. 平滑性奖励（相邻数字大小相近） ==========
         smoothness = 0
         for i in range(4):
             for j in range(4):
@@ -135,14 +141,29 @@ class Game2048:
                 if val > 0:
                     # 检查右边
                     if j < 3 and board[i, j + 1] > 0:
-                        diff = np.abs(np.log2(val) - np.log2(board[i, j + 1]))
-                        smoothness -= diff * 0.1
+                        diff = abs(np.log2(val) - np.log2(board[i, j + 1]))
+                        smoothness -= diff * 0.2
                     # 检查下边
                     if i < 3 and board[i + 1, j] > 0:
-                        diff = np.abs(np.log2(val) - np.log2(board[i + 1, j]))
-                        smoothness -= diff * 0.1
+                        diff = abs(np.log2(val) - np.log2(board[i + 1, j]))
+                        smoothness -= diff * 0.2
         
         reward += smoothness
+        
+        # ========== 6. 相同数字相邻奖励（容易合并） ==========
+        same_neighbors = 0
+        for i in range(4):
+            for j in range(4):
+                val = board[i, j]
+                if val > 0:
+                    # 检查右边
+                    if j < 3 and board[i, j + 1] == val:
+                        same_neighbors += np.log2(val + 1) * 0.3
+                    # 检查下边
+                    if i < 3 and board[i + 1, j] == val:
+                        same_neighbors += np.log2(val + 1) * 0.3
+        
+        reward += same_neighbors
         
         return reward
     

@@ -10,13 +10,13 @@ from models import PPONetwork
 
 
 class PPOAgent(BaseAgent):
-    """PPO 智能体"""
+    """PPO 智能体 - 改进版"""
     
     def __init__(
         self,
         input_shape: tuple = (4, 4),
         num_actions: int = 4,
-        hidden_dim: int = 128,
+        hidden_dim: int = 256,
         lr: float = 3e-4,
         gamma: float = 0.99,
         gae_lambda: float = 0.95,
@@ -25,6 +25,7 @@ class PPOAgent(BaseAgent):
         entropy_coef: float = 0.01,
         ppo_epochs: int = 10,
         batch_size: int = 64,
+        use_one_hot: bool = True,
         device: str = 'cpu'
     ):
         super().__init__(device)
@@ -38,7 +39,7 @@ class PPOAgent(BaseAgent):
         self.ppo_epochs = ppo_epochs
         self.batch_size = batch_size
         
-        self.network = PPONetwork(input_shape, num_actions, hidden_dim).to(self.device)
+        self.network = PPONetwork(input_shape, num_actions, hidden_dim, use_one_hot).to(self.device)
         self.optimizer = optim.Adam(self.network.parameters(), lr=lr)
         
         self.states = []
@@ -48,11 +49,19 @@ class PPOAgent(BaseAgent):
         self.values = []
         self.dones = []
     
-    def select_action(self, state: np.ndarray, epsilon: float = 0.0) -> int:
-        """选择动作"""
+    def select_action(self, state: np.ndarray, valid_actions: list = None, epsilon: float = 0.0) -> int:
+        """选择动作 - 支持过滤无效动作"""
         with torch.no_grad():
             state_tensor = self.preprocess_state(state)
             logits, value = self.network(state_tensor)
+            
+            # 如果有有效动作列表，把无效动作的概率设为极小
+            if valid_actions is not None and len(valid_actions) < 4:
+                mask = torch.ones(self.num_actions, device=self.device) * -1e10
+                for a in valid_actions:
+                    mask[a] = 0
+                logits = logits + mask
+            
             probs = F.softmax(logits, dim=-1)
             dist = torch.distributions.Categorical(probs)
             action = dist.sample()
@@ -130,7 +139,8 @@ class PPOAgent(BaseAgent):
                 end = start + self.batch_size
                 batch_indices = indices[start:end]
                 
-                batch_states = torch.FloatTensor(np.log2(states[batch_indices] + 1)).to(self.device)
+                # 直接用原始状态，网络会自己处理one-hot
+                batch_states = torch.FloatTensor(states[batch_indices]).to(self.device)
                 batch_actions = torch.LongTensor(actions[batch_indices]).to(self.device)
                 batch_old_log_probs = torch.FloatTensor(old_log_probs[batch_indices]).to(self.device)
                 batch_returns = torch.FloatTensor(returns[batch_indices]).to(self.device)

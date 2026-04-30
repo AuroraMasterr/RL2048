@@ -16,15 +16,21 @@ class Config:
     
     # DQN 设置
     dqn = {
-        'hidden_dim': 128,
-        'lr': 1e-3,
+        'hidden_dim': 256,
+        'lr': 5e-4,
         'gamma': 0.99,
         'epsilon_start': 1.0,
         'epsilon_end': 0.01,
-        'epsilon_decay': 0.995,
-        'target_update': 100,
-        'buffer_size': 10000,
-        'batch_size': 32
+        'epsilon_decay': 0.997,
+        'target_update': 1,
+        'buffer_size': 50000,
+        'batch_size': 128,
+        'prioritized_replay': True,
+        'priority_alpha': 0.6,
+        'priority_beta': 0.4,
+        'tau': 0.01,
+        'grad_clip_norm': 10.0,
+        'use_one_hot': True
     }
     
     # Double DQN 设置
