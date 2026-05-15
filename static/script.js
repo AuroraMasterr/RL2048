@@ -1,6 +1,8 @@
 // 游戏状态
 let gameId = 'default';
 let bestScore = localStorage.getItem('bestScore') || 0;
+let agentPlaying = false;
+let agentTimer = null;
 document.getElementById('best-score').textContent = bestScore;
 
 // 初始化游戏
@@ -12,6 +14,7 @@ function initGame() {
 // 重置游戏
 async function resetGame() {
     try {
+        stopAgentPlay();
         const response = await fetch('/api/reset', {
             method: 'POST',
             headers: {
@@ -63,6 +66,9 @@ function updateScore(score) {
 // 执行动作
 async function makeMove(action) {
     try {
+        if (agentPlaying) {
+            stopAgentPlay();
+        }
         console.log('Making move:', action); // 调试信息
         
         const response = await fetch('/api/step', {
@@ -90,8 +96,75 @@ async function makeMove(action) {
     }
 }
 
+async function agentMove() {
+    try {
+        const response = await fetch('/api/agent/step', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                game_id: gameId
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            console.error('Agent error:', data.error);
+            stopAgentPlay();
+            alert(`智能体不可用：${data.error}`);
+            return;
+        }
+
+        updateBoard(data.board);
+        updateScore(data.score);
+
+        if (data.done) {
+            stopAgentPlay();
+            alert(`AI 对局结束！最终得分：${data.score}`);
+        }
+    } catch (error) {
+        console.error('Error running agent move:', error);
+        stopAgentPlay();
+    }
+}
+
+function startAgentPlay() {
+    if (agentPlaying) return;
+    agentPlaying = true;
+    const btn = document.getElementById('agent-toggle-btn');
+    btn.textContent = '⏸️ 停止代打';
+    agentTimer = setInterval(agentMove, 250);
+}
+
+function stopAgentPlay() {
+    agentPlaying = false;
+    const btn = document.getElementById('agent-toggle-btn');
+    if (btn) {
+        btn.textContent = '▶️ AI 代打';
+    }
+    if (agentTimer) {
+        clearInterval(agentTimer);
+        agentTimer = null;
+    }
+}
+
+function toggleAgentPlay() {
+    if (agentPlaying) {
+        stopAgentPlay();
+    } else {
+        startAgentPlay();
+    }
+}
+
 // 设置事件监听器
 function setupEventListeners() {
+    const agentToggleBtn = document.getElementById('agent-toggle-btn');
+    if (agentToggleBtn) {
+        agentToggleBtn.addEventListener('click', toggleAgentPlay);
+    }
+
     // 键盘事件
     document.addEventListener('keydown', function(e) {
         console.log('Key pressed:', e.key); // 调试信息
